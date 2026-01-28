@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  skills        String?   // Comma separated tags
+  major         String?
+  university    String?
+  year          String?   // Sophomore, Junior, etc.
+  github        String?
+  website       String?
+  banner        String?
+  
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Projects created by the user
+  projects      Project[] 
+  
+  // Swipes MADE by the user ON projects
+  swipes        Swipe[]   
+  
+  // User-to-User swiping (Teammates)
+  userSwipes    UserSwipe[] @relation("Swiper")
+  swipedBy      UserSwipe[] @relation("Swiped")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@id([identifier, token])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String?  // Main image
+  tags        String   // Comma separated tags
+  
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  swipes      Swipe[]  // Swipes received by this project
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// User swiping on a Project
+model Swipe {
+  id        String      @id @default(cuid())
+  swiperId  String
+  swiper    User        @relation(fields: [swiperId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  action    String      // 'LIKE' or 'PASS'
+
+  createdAt DateTime    @default(now())
+  
+  @@unique([swiperId, projectId])
+  @@index([swiperId])
+  @@index([projectId])
+}
+
+// User swiping on another User (Teammates)
+model UserSwipe {
+  id        String   @id @default(cuid())
+  swiperId  String
+  swiper    User     @relation("Swiper", fields: [swiperId], references: [id], onDelete: Cascade)
+  swipedId  String
+  swiped    User     @relation("Swiped", fields: [swipedId], references: [id], onDelete: Cascade)
+  action    String   // 'LIKE' or 'PASS'
+  createdAt DateTime @default(now())
+
+  @@unique([swiperId, swipedId])
+  @@index([swiperId])
+  @@index([swipedId])
+}

@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# linting logs
+lint_errors.txt
+lint_output*
+
+# editors
+.vscode/
+.idea/
+
+# os
+Thumbs.db
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,63 @@
+﻿
+> project-match@0.1.0 lint
+> eslint
+
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\actions\swipe.ts
+  11:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\api\projects\feed\route.ts
+  5:27  warning  'req' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\ComingSoon.tsx
+  20:19  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\CreateProjectModal.tsx
+  10:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\Deck.tsx
+  24:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\Deck.tsx:24:9
+  22 |
+  23 |     useEffect(() => {
+> 24 |         setLocalItems(items);
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  25 |         setCurrentIndex(0);
+  26 |     }, [items]);
+  27 |  react-hooks/set-state-in-effect
+  34:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  34:42  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\MainApp.tsx
+   36:5   warning  'session' is defined but never used                              @typescript-eslint/no-unused-vars
+   41:14  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  123:69  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\feed\ProjectCard.tsx
+   3:10  warning  'Badge' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  21:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\components\feed\UserCard.tsx
+  22:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\app\page.tsx
+   4:10  warning  'redirect' is defined but never used      @typescript-eslint/no-unused-vars
+  32:42  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:29  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:31  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:36  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\DELL\Desktop\Opencode\Project-match\project-match\lib\auth.ts
+  16:29  warning  'credentials' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 21 problems (14 errors, 7 warnings)
+
