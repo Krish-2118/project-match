@@ -1,0 +1,7 @@
+src/projects/dto/create-project.dto.ts(6,3): error TS2564: Property 'title' has no initializer and is not definitely assigned in the constructor.
+src/projects/dto/create-project.dto.ts(10,3): error TS2564: Property 'description' has no initializer and is not definitely assigned in the constructor.
+src/projects/dto/create-project.dto.ts(14,3): error TS2564: Property 'tags' has no initializer and is not definitely assigned in the constructor.
+src/swipes/dto/swipe.dto.ts(10,3): error TS2564: Property 'projectId' has no initializer and is not definitely assigned in the constructor.
+src/swipes/dto/swipe.dto.ts(13,3): error TS2564: Property 'action' has no initializer and is not definitely assigned in the constructor.
+src/swipes/dto/swipe.dto.ts(18,3): error TS2564: Property 'userId' has no initializer and is not definitely assigned in the constructor.
+src/swipes/dto/swipe.dto.ts(21,3): error TS2564: Property 'action' has no initializer and is not definitely assigned in the constructor.

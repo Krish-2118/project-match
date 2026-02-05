@@ -1,188 +1,101 @@
-# 🚀 ProjectMatch — Swipe to Collaborate
+# Project Match - Monorepo
 
-ProjectMatch is a collaboration-first platform inspired by swipe-based discovery systems, designed **not for dating, but for building projects together**.  
-It helps developers, designers, and builders discover compatible collaborators and live projects based on skills, interests, and intent.
+**A modern web application built with a high-performance stack.**
 
-The platform prioritizes **meaningful collaboration over social networking**, ensuring low-noise, high-signal matches.
+## Tech Stack
 
----
-
-## 🧠 The Problem
-
-Finding the right people to build projects with is difficult.
-
-GitHub showcases code but not availability or intent.  
-LinkedIn highlights resumes rather than active projects.  
-Discord communities are noisy and unstructured.  
-Hackathons are time-bound and temporary.
-
-ProjectMatch addresses this gap by combining structured builder profiles, intelligent matching, and real project discovery into a single focused platform.
+- **Monorepo**: [Turborepo](https://turbo.build/)
+- **Runtime**: [Bun](https://bun.sh/)
+- **Frontend**: [Next.js 15](https://nextjs.org/) + [Clerk Auth](https://clerk.com/)
+- **Backend**: [NestJS](https://nestjs.com/)
+- **Database**: [PostgreSQL (Neon)](https://neon.tech/) + [Prisma](https://www.prisma.io/)
+- **Linting**: [Biome](https://biomejs.dev/)
 
 ---
 
-## ✨ What ProjectMatch Offers
+## 🚀 Getting Started
 
-### 👤 Builder Profiles
+### 1. Prerequisites
 
-Each user has a swipeable profile that represents them as a **builder**, not a social account.
+- [Bun](https://bun.sh/) installed (`powershell -c "irm bun.sh/install.ps1 | iex"`)
+- [Neon](https://neon.tech/) account for PostgreSQL
+- [Clerk](https://clerk.com/) account for Authentication
+- [Cloudinary](https://cloudinary.com/) account for image uploads
 
-Profiles include:
-- Past projects
-- Tech stack and tools
-- Major achievements (hackathons, internships, open source)
-- Personal interests and hobbies
-- Preferred collaboration roles and domains
+### 2. Environment Variables
 
-This allows others to quickly understand both **capability and intent**.
+Create a `.env` file in the root directory:
 
----
+```env
+# Database (Neon)
+DATABASE_URL="postgresql://user:pass@ep-xyz.region.aws.neon.tech/neondb?sslmode=require"
 
-### 🔁 Swipe-Based Matching (People Mode)
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
 
-Users discover other builders through a swipe interface:
-- Swipe right to express interest in collaborating
-- Swipe left to skip
+# Image Storage (Cloudinary - Optional/Required for uploads)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
 
-A match occurs only when **both users swipe right**.  
-Once matched, GitHub profiles are shared and collaboration can begin.
+# Frontend/Backend Communication
+FRONTEND_URL="http://localhost:3000"
+PORT=3001
+```
 
-This ensures that contact happens only when there is mutual interest.
+### 3. Install & Setup
 
----
+```powershell
+# Install dependencies
+bun install
 
-### 🔴 Live Projects (Connect Mode)
+# Generate Prisma Client
+bun run db:generate
 
-ProjectMatch also provides a dedicated space for **active, ongoing projects**.
+# Push Schema to Database
+bun run db:push
+```
 
-Users can:
-- Browse projects looking for collaborators
-- Join open projects directly
-- Apply to restricted projects
-- Post their own projects with defined roles
+### 4. Run the Project
 
-Each project clearly specifies its problem statement, tech stack, required skills, commitment level, and current stage.
-
----
-
-## 🤖 Intelligent Recommendation System
-
-At the core of ProjectMatch is a custom, indigenous recommendation model built specifically for collaboration discovery.
-
-Instead of generic engagement-based ranking, the system analyzes:
-- Skill similarity and depth
-- Project domain overlap
-- Tech stack compatibility
-- Personal interests and learning goals
-- Past interaction and collaboration behavior
-
-These signals are combined to generate high-quality recommendations for both people and projects, reducing randomness and improving match relevance.
+```powershell
+# Start both Frontend (3000) and Backend (3001)
+bun run dev
+```
 
 ---
 
-## 🏗️ System Design Overview
+## 🏗️ Project Structure
 
-ProjectMatch follows a clean, modular system design.  
-The frontend is built with Next.js and handles UI rendering, swipe interactions, authentication flows, and API communication.  
-The backend manages business logic such as matching, project lifecycle, recommendation scoring, and access control.
+```
+.
+├── apps/
+│   ├── frontend/     # Next.js Application
+│   │   ├── app/      # App Router (Pages & Layouts)
+│   │   └── actions/  # Server Actions (call DB/API)
+│   └── backend/      # NestJS API
+│       ├── src/
+│       │   ├── auth/ # Clerk Auth Guard & Service
+│       │   ├── users/
+│       │   ├── projects/
+│       │   └── swipes/
+├── packages/
+│   └── database/     # Shared Prisma Schema & Client
+├── turbo.json        # Pipeline config
+└── package.json      # Workspace config
+```
 
-PostgreSQL is used as the primary database, with Prisma ORM ensuring type-safe and maintainable data access.  
-The recommendation logic operates as a service layer that processes user and project features to produce ranked suggestions.
+## 🛠️ Commands
 
-The overall system is designed to be scalable, privacy-aware, and easy to extend with future features.
+- `bun run dev` - Start dev servers
+- `bun run build` - Build all apps
+- `bun run lint` - Check linting (Biome)
+- `bun run format` - Format code (Biome)
+- `bun run db:studio` - Open Prisma Studio to view data
 
----
+## 🔐 Authentication Flow
 
-## 🔐 Authentication (Email Magic Link)
-
-ProjectMatch uses **passwordless email-based authentication**.
-
-Login flow:
-1. User enters their email address
-2. A secure magic link is sent to the email
-3. Clicking the link verifies the session
-4. The user is redirected directly to their dashboard
-
-This approach removes the need for passwords, improves security, and significantly lowers onboarding friction.
-
-GitHub OAuth is optionally used to link profiles and fetch public project information, but GitHub details are shared only after a mutual match.
-
----
-
-## 🔒 Privacy & Safety
-
-- GitHub links are hidden until a mutual match occurs
-- No unsolicited messaging is allowed
-- Project owners control collaborator access
-- Rate limiting on swipes and join requests
-- Input validation across all user inputs
-
----
-
-## 🛠 Tech Stack
-
-**Frontend**
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-
-**Backend**
-- Node.js
-- Next.js API Routes
-- Prisma ORM
-
-**Database**
-- PostgreSQL
-
-**Authentication**
-- Email Magic Links
-- GitHub OAuth (optional)
-
-**Infrastructure**
-- Docker (optional)
-- Vercel / AWS / Railway
-- GitHub Actions (CI/CD)
-
----
-
-## 🧪 Testing
-
-- Unit tests for recommendation logic
-- API route testing
-- Component-level UI testing
-- Load testing for swipe and match operations
-
----
-
-## 🗺 Roadmap
-
-- In-app messaging
-- Team dashboards
-- Contribution tracking
-- Reputation and trust scores
-- AI-generated profile summaries
-- Advanced team compatibility scoring
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome.
-
-1. Fork the repository  
-2. Create a feature branch  
-3. Commit with clear messages  
-4. Open a pull request  
-
----
-
-## 📜 License
-
-MIT License
-
----
-
-## 🌟 Vision
-
-GitHub shows what you’ve built.  
-ProjectMatch shows what you want to build next — and with whom.
+1. **Frontend**: Uses `<ClerkProvider>` and `middleware.ts` to protect routes.
+2. **Backend**: Protected endpoints use `ClerkAuthGuard` which verifies the Bearer token sent from the frontend.
+3. **User Sync**: When a user logs in, `app/page.tsx` ensures their record exists in the PostgreSQL `User` table.

@@ -1,0 +1,10 @@
+app/actions/profile.ts(69,25): error TS2304: Cannot find name 'auth'.
+app/actions/profile.ts(147,7): error TS2322: Type '{ name: string; email: string; bio: string; skills: string; major: string; university: string; year: string; }' is not assignable to type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+  Type '{ name: string; email: string; bio: string; skills: string; major: string; university: string; year: string; }' is not assignable to type 'Without<UserUncheckedCreateInput, UserCreateInput> & UserCreateInput'.
+    Property 'id' is missing in type '{ name: string; email: string; bio: string; skills: string; major: string; university: string; year: string; }' but required in type 'UserCreateInput'.
+app/api/projects/[id]/swipe/route.ts(1,22): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+app/api/projects/feed/route.ts(1,22): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+app/api/projects/route.ts(1,22): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+lib/socket.ts(2,42): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.
+lib/socket.ts(18,26): error TS7006: Parameter 'socket' implicitly has an 'any' type.
+lib/socket.ts(21,35): error TS7006: Parameter 'data' implicitly has an 'any' type.

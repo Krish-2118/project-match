@@ -1,0 +1,78 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id // Clerk User ID
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  skills        String?
+  major         String?
+  university    String?
+  year          String?
+  github        String?
+  website       String?
+  banner        String?
+  
+  projects      Project[] 
+  swipes        Swipe[]   
+  userSwipes    UserSwipe[] @relation("Swiper")
+  swipedBy      UserSwipe[] @relation("Swiped")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String?
+  tags        String
+  
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  swipes      Swipe[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Swipe {
+  id        String   @id @default(cuid())
+  swiperId  String
+  swiper    User     @relation(fields: [swiperId], references: [id], onDelete: Cascade)
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  action    String
+
+  createdAt DateTime @default(now())
+  
+  @@unique([swiperId, projectId])
+  @@index([swiperId])
+  @@index([projectId])
+}
+
+model UserSwipe {
+  id        String   @id @default(cuid())
+  swiperId  String
+  swiper    User     @relation("Swiper", fields: [swiperId], references: [id], onDelete: Cascade)
+  swipedId  String
+  swiped    User     @relation("Swiped", fields: [swipedId], references: [id], onDelete: Cascade)
+  action    String
+  createdAt DateTime @default(now())
+
+  @@unique([swiperId, swipedId])
+  @@index([swiperId])
+  @@index([swipedId])
+}
