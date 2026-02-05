@@ -1,0 +1,13 @@
+• turbo 2.8.3
+• Packages in scope: @repo/backend, @repo/database, @repo/frontend
+• Running typecheck in 3 packages
+• Remote caching disabled
+@repo/backend:typecheck: cache miss, executing 5060eb9838e5c7a5
+@repo/frontend:typecheck: cache miss, executing 4295163f3f300307
+@repo/backend:typecheck: $ tsc --noEmit
+@repo/frontend:typecheck: $ tsc --noEmit
+
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    7.961s 
+

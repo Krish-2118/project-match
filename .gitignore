@@ -1,0 +1,38 @@
+# Dependencies
+/node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+coverage
+.nyc_output
+
+# Build artifacts
+dist
+build
+.next
+out
+.turbo
+
+# OS / Editor
+.DS_Store
+*.pem
+.vscode
+.idea
+*.log
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vercel
+.vercel
