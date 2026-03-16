@@ -327,7 +327,7 @@ const Menu = () => {
               <FooterText
                 className="link"
                 as="a"
-                href="/login"
+                href="/auth/signin"
                 onMouseEnter={addCursorBorder}
                 onMouseLeave={removeCursorBorder}
               >

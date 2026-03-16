@@ -10,42 +10,43 @@ export async function GET() {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        // Get IDs of projects the user has already swiped on
-        const swipedProjects = await prisma.swipe.findMany({
-            where: {
-                swiperId: session.user.id,
-            },
-            select: {
-                projectId: true,
-            },
-        });
-
-        const swipedProjectIds = swipedProjects.map((swipe: { projectId: string }) => swipe.projectId);
-
-        // Fetch projects that are NOT in the swiped list and NOT owned by the user
-        // Limit to 10 for the feed
         const projects = await prisma.project.findMany({
             where: {
-                AND: [
-                    {
-                        id: {
-                            notIn: swipedProjectIds,
-                        },
-                    },
-                    // {
-                    //     ownerId: {
-                    //         not: session.user.id,
-                    //     },
-                    // },
-                ],
+                ownerId: {
+                    not: session.user.id,
+                },
             },
-            take: 10,
+            include: {
+                owner: {
+                    select: {
+                        name: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        comments: true,
+                    },
+                },
+            },
+            take: 12,
             orderBy: {
                 createdAt: "desc",
             },
         });
-
-        return NextResponse.json(projects);
+        return NextResponse.json(
+            projects.map((project) => ({
+                id: project.id,
+                title: project.title,
+                description: project.description,
+                imageUrl: project.imageUrl,
+                tags: project.tags,
+                createdAt: project.createdAt.toISOString(),
+                commentsCount: project._count.comments,
+                owner: {
+                    name: project.owner.name,
+                },
+            })),
+        );
     } catch (error) {
         console.error("[PROJECTS_FEED_GET]", error);
         return new NextResponse("Internal Error", { status: 500 });

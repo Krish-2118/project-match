@@ -6,11 +6,13 @@ import { Coffee, MessageCircle, Rocket, User } from "lucide-react";
 interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  unreadCount?: number;
 }
 
 export default function Navigation({
   activeTab,
   setActiveTab,
+  unreadCount = 0,
 }: NavigationProps) {
   const tabs = [
     { id: "projects", label: "Projects", icon: Rocket },
@@ -50,12 +52,11 @@ export default function Navigation({
               {!isActive && (
                 <div className="absolute inset-0 bg-white/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
               )}
-              {tab.id === "messages" && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-accent border-2 border-black"></span>
+              {tab.id === "messages" && unreadCount > 0 ? (
+                <span className="absolute -top-2 -right-2 flex min-w-5 items-center justify-center rounded-full border border-black bg-accent px-1.5 py-0.5 text-[10px] font-black text-white shadow-[0_0_12px_rgba(234,40,30,0.35)]">
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
-              )}
+              ) : null}
             </button>
           );
         })}

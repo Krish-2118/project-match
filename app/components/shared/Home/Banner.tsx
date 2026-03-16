@@ -18,6 +18,7 @@ const BannerSection = styled.section`
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  touch-action: pan-y;
 
   & canvas {
     display: block;
@@ -62,6 +63,7 @@ const VideoContainer = styled.div`
   position: absolute;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
 
   & video {
     width: 100%;
@@ -158,6 +160,7 @@ const CanvasOverlay = styled.canvas`
   top: 0;
   left: 0;
   z-index: 2;
+  pointer-events: none;
 `;
 
 const BottomGradient = styled.div`

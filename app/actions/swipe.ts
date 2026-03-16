@@ -62,15 +62,16 @@ export async function swipeUser(swipedId: string, action: "LIKE" | "PASS") {
 
             if (mutualSwipe && mutualSwipe.action === "LIKE") {
                 revalidatePath("/");
-                return { isMatch: true, swipedId };
+                return { success: true, isMatch: true, swipedId };
             }
         }
     } catch (error) {
         console.error("Swipe user failed:", error);
+        return { success: false, isMatch: false };
     } finally {
         revalidatePath("/");
     }
-    return { isMatch: false };
+    return { success: true, isMatch: false };
 }
 
 export async function unmatchUser(targetUserId: string) {

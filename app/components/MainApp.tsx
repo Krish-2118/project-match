@@ -1,27 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navigation from "./Navigation";
 import Deck from "./Deck";
-import DiscoveryProjectCard from "./feed/DiscoveryProjectCard";
 import UserCard from "./feed/UserCard";
+import TeammateDetailsModal from "./feed/TeammateDetailsModal";
 import ProfileView from "./profile/ProfileView";
-import { swipeProject, swipeUser } from "../actions/swipe";
-import { Coffee, Plus, Rocket, MessageSquare, House } from "lucide-react";
-import { seedData } from "../actions/profile";
+import { swipeUser } from "../actions/swipe";
+import { Coffee, Plus, Rocket, House } from "lucide-react";
 import CreateProjectModal from "./CreateProjectModal";
 import MatchModal from "./MatchModal";
+import MessagesView from "./messages/MessagesView";
+import type { ChatUserSummary, ConversationSummary } from "@/lib/chat-types";
+import type { ProjectFeedItem } from "@/lib/project-types";
+import ProjectBrowser from "./projects/ProjectBrowser";
 
 export interface Project {
   id: string;
   title: string;
   description: string;
-  imageUrl?: string | null;
-  videoUrl?: string;
-  category?: string;
-  year?: string;
+  imageUrl: string | null;
   tags: string;
+  createdAt: string;
+  commentsCount: number;
   owner: { name: string | null };
 }
 
@@ -34,6 +37,7 @@ export interface UserProfile {
   major: string | null;
   university: string | null;
   year: string | null;
+  github?: string | null;
   email?: string | null;
 }
 
@@ -43,54 +47,76 @@ export default function MainApp({
   userProfile,
   matches,
   myProjects,
+  initialConversations,
+  realtimeConfigured,
   initialTab = "projects",
 }: {
-  projects: Project[];
+  projects: ProjectFeedItem[];
   teammates: UserProfile[];
   userProfile: UserProfile;
   matches: UserProfile[];
   myProjects: Project[];
+  initialConversations: ConversationSummary[];
+  realtimeConfigured: boolean;
   initialTab?: string;
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [isSeeding, setIsSeeding] = useState(false);
+  const [projectView, setProjectView] = useState<"discover" | "mine">(
+    "discover",
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [matchData, setMatchData] = useState<UserProfile | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [selectedTeammate, setSelectedTeammate] = useState<UserProfile | null>(
+    null,
+  );
+  const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(
+    initialConversations.reduce(
+      (count, conversation) => count + conversation.unreadCount,
+      0,
+    ),
+  );
 
   const handleUserSwipe = async (user: UserProfile, dir: "left" | "right") => {
     const result = await swipeUser(user.id, dir === "right" ? "LIKE" : "PASS");
-    if (result?.isMatch) {
-      const found = teammates.find((t) => t.id === result.swipedId);
-      if (found) {
-        setMatchData(found);
-        setIsMatchModalOpen(true);
-      }
+    if (result?.success === false) {
+      return;
     }
+
+    if (result?.isMatch) {
+      setMatchData(user);
+      setIsMatchModalOpen(true);
+    }
+
+    window.setTimeout(() => {
+      router.refresh();
+    }, 320);
   };
 
-  const handleSeed = async () => {
-    setIsSeeding(true);
-    try {
-      await seedData();
-      window.location.reload();
-    } catch (error) {
-      console.error("Seeding failed", error);
-    } finally {
-      setIsSeeding(false);
-    }
+  const handleOpenTeammateDetails = (user: UserProfile) => {
+    setSelectedTeammate(user);
   };
+
+  const activeProjectItems = useMemo<ProjectFeedItem[]>(
+    () => (projectView === "discover" ? projects : myProjects),
+    [myProjects, projectView, projects],
+  );
 
   return (
-    <div className="min-h-screen relative bg-black text-white">
+    <div className="relative h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-y-auto bg-black text-white [-webkit-overflow-scrolling:touch]">
       {/* Enhanced background with cinematic glow */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(234,40,30,0.1),transparent_70%)]" />
       <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent" />
 
-      <main className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 pb-28 sm:pb-32 max-w-5xl relative z-10">
+      <main
+        className={`container mx-auto max-w-5xl px-3 sm:px-6 md:px-8 py-5 sm:py-8 relative z-10 ${
+          activeTab === "teammates" ? "pb-24 sm:pb-32" : "pb-28 sm:pb-32"
+        }`}
+      >
         {activeTab === "projects" && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-10 sm:mb-12">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-4 sm:mb-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="text-center lg:text-left space-y-2 px-1 sm:px-0">
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase leading-tight">
@@ -103,7 +129,7 @@ export default function MainApp({
                     </span>
                   </h1>
                   <p className="text-gray-500 text-[11px] sm:text-xs tracking-[0.14em] sm:tracking-[0.2em] font-bold uppercase opacity-60 px-2 sm:px-0">
-                    Swipe right to join, left to pass
+                    Scroll sideways, open details, and join the public thread
                   </p>
                 </div>
 
@@ -132,92 +158,101 @@ export default function MainApp({
               </div>
             </header>
 
-            <Deck
-              items={projects}
-              renderItem={(project: Project) => (
-                <DiscoveryProjectCard project={project} />
-              )}
-              onSwipe={(project: Project, dir: "left" | "right") =>
-                swipeProject(project.id, dir === "right" ? "LIKE" : "PASS")
+            <div className="flex justify-center lg:justify-start">
+              <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
+                <button
+                  type="button"
+                  onClick={() => setProjectView("discover")}
+                  className={`rounded-[1rem] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-all sm:px-5 ${
+                    projectView === "discover"
+                      ? "bg-linear-to-r from-zinc-950 via-neutral-900 to-zinc-950 text-white shadow-[0_10px_20px_rgba(234,40,30,0.18)]"
+                      : "text-gray-500 hover:text-white"
+                  }`}
+                >
+                  Discover
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProjectView("mine")}
+                  className={`rounded-[1rem] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition-all sm:px-5 ${
+                    projectView === "mine"
+                      ? "bg-linear-to-r from-zinc-950 via-neutral-900 to-zinc-950 text-white shadow-[0_10px_20px_rgba(234,40,30,0.18)]"
+                      : "text-gray-500 hover:text-white"
+                  }`}
+                >
+                  My Projects
+                </button>
+              </div>
+            </div>
+
+            <ProjectBrowser
+              projects={activeProjectItems}
+              emptyTitle={
+                projectView === "discover"
+                  ? "No projects available yet"
+                  : "You have not posted any projects yet"
               }
-              emptyState={
-                <div className="text-center space-y-6 py-20">
-                  <div className="p-6 bg-linear-to-tr from-primary/20 to-secondary/20 rounded-full w-fit mx-auto">
-                    <Rocket className="w-12 h-12 text-primary/60" />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-400 text-lg font-medium">
-                      No more projects in your area
-                    </p>
-                    <button
-                      onClick={handleSeed}
-                      disabled={isSeeding}
-                      className="px-6 py-3 glass-morphism rounded-xl text-sm font-bold hover:bg-white/10 transition-colors border border-white/5"
-                    >
-                      {isSeeding ? "Seeding..." : "Discover More"}
-                    </button>
-                  </div>
-                </div>
+              emptyMessage={
+                projectView === "discover"
+                  ? "Create the first project or check back later."
+                  : "Use Add Project to publish your first build here."
               }
             />
           </div>
         )}
 
         {activeTab === "teammates" && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="text-center space-y-4 mb-10 sm:mb-12 px-1 sm:px-0">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase flex flex-wrap items-center justify-center gap-3 leading-tight">
-                <Coffee className="w-8 h-8 text-primary" />
+          <div className="mx-auto flex min-h-[calc(100dvh-6.5rem)] w-full max-w-[23rem] flex-col gap-3 sm:min-h-[calc(100dvh-8rem)] sm:max-w-[29rem] sm:gap-5 md:max-w-[33rem] md:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-1 space-y-2 px-1 text-center sm:mb-2 sm:space-y-3 sm:px-0">
+              <h1 className="flex flex-wrap items-center justify-center gap-2 text-[clamp(2rem,7vw,4.15rem)] font-black uppercase tracking-tighter leading-[0.9]">
+                <Coffee className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                 Find Your{" "}
                 <span className="text-primary font-light">Dream Team</span>
               </h1>
-              <p className="text-gray-500 text-[11px] sm:text-xs tracking-[0.14em] sm:tracking-[0.2em] font-bold uppercase opacity-60 px-2 sm:px-0">
-                Connect with brilliant minds
+              <p className="mx-auto max-w-[18rem] text-gray-500 text-[10px] sm:max-w-[24rem] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.18em] font-bold uppercase opacity-60">
+                Swipe left or right to decide, swipe up for the full profile
               </p>
             </header>
 
-            <Deck
-              items={teammates}
-              renderItem={(user: UserProfile) => <UserCard user={user} />}
-              onSwipe={handleUserSwipe}
-              emptyState={
-                <div className="text-center space-y-6 py-20">
-                  <div className="p-6 bg-linear-to-tr from-secondary/20 to-accent/20 rounded-full w-fit mx-auto">
-                    <Coffee className="w-12 h-12 text-secondary/60" />
+            <div className="flex min-h-0 flex-1 items-stretch justify-center">
+              <Deck
+                items={teammates}
+                renderItem={(user: UserProfile) => (
+                  <UserCard
+                    user={user}
+                    onViewDetails={() => handleOpenTeammateDetails(user)}
+                  />
+                )}
+                onSwipe={handleUserSwipe}
+                onSwipeUp={handleOpenTeammateDetails}
+                emptyState={
+                  <div className="text-center space-y-6 py-20">
+                    <div className="p-6 bg-linear-to-tr from-secondary/20 to-accent/20 rounded-full w-fit mx-auto">
+                      <Coffee className="w-12 h-12 text-secondary/60" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-gray-400 text-lg font-medium">
+                        No teammates available yet
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        New profiles will appear here when more people join.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-400 text-lg font-medium">
-                      You&apos;ve seen everyone!
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      Check back later for new connections
-                    </p>
-                  </div>
-                </div>
-              }
-            />
+                }
+              />
+            </div>
           </div>
         )}
 
         {activeTab === "messages" && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 px-2 sm:px-0">
-            <div className="p-8 bg-linear-to-tr from-accent/20 to-primary/20 rounded-full">
-              <MessageSquare className="w-16 h-16 text-accent/60" />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tighter leading-tight">
-                Messages Coming Soon
-              </h2>
-              <p className="text-gray-400 text-base sm:text-lg font-medium max-w-md">
-                We&apos;re building a premium chat experience for your matches.
-              </p>
-            </div>
-            <div className="glass-morphism px-6 py-3 rounded-xl border border-white/5">
-              <span className="text-sm font-bold text-gray-400">
-                Expected: Q2 2026
-              </span>
-            </div>
-          </div>
+          <MessagesView
+            currentUserId={userProfile.id || ""}
+            matches={matches as ChatUserSummary[]}
+            initialConversations={initialConversations}
+            realtimeConfigured={realtimeConfigured}
+            onUnreadCountChange={setUnreadCount}
+          />
         )}
 
         {activeTab === "profile" && (
@@ -229,7 +264,11 @@ export default function MainApp({
         )}
       </main>
 
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        unreadCount={unreadCount}
+      />
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -238,6 +277,10 @@ export default function MainApp({
         isOpen={isMatchModalOpen}
         onClose={() => setIsMatchModalOpen(false)}
         matchUser={matchData}
+      />
+      <TeammateDetailsModal
+        user={selectedTeammate}
+        onClose={() => setSelectedTeammate(null)}
       />
     </div>
   );

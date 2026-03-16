@@ -25,7 +25,7 @@ export default function CreateProjectModal({
         setErrors(result.error);
       } else {
         onClose();
-        alert("Project rocket launched! 🚀");
+        alert("Project launched successfully.");
       }
     });
   };
@@ -166,9 +166,9 @@ export default function CreateProjectModal({
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="flex-1 py-4 bg-linear-to-r from-zinc-950 via-neutral-900 to-zinc-950 rounded-2xl font-black text-lg text-white border border-primary/45 hover:border-primary/70 hover:shadow-[0_12px_30px_rgba(234,40,30,0.28)] transition-all active:scale-95"
+                    className="flex-1 py-4 bg-linear-to-r from-zinc-950 via-neutral-900 to-zinc-950 rounded-2xl font-bold text-white border border-primary/45 hover:border-primary/70 hover:shadow-[0_12px_30px_rgba(234,40,30,0.28)] transition-all active:scale-95"
                   >
-                    {isPending ? "Launching..." : "🚀 Launch Project"}
+                    {isPending ? "Launching..." : "Launch Project"}
                   </button>
                 </div>
               </form>

@@ -1,5 +1,8 @@
 import { auth } from "@/lib/auth";
+import { isAblyConfigured } from "@/lib/ably";
+import { listConversationSummaries } from "@/lib/chat";
 import prisma from "@/lib/prisma";
+import type { ProjectFeedItem } from "@/lib/project-types";
 import MainApp from "./components/MainApp";
 import { redirect } from "next/navigation";
 
@@ -18,19 +21,35 @@ export default async function Home({
 
   const userId = session?.user?.id;
 
-  // Fetch projects the user hasn't swiped on yet
-  const swipedProjectIds = await prisma.swipe
-    .findMany({ where: { swiperId: userId }, select: { projectId: true } })
-    .then((swipes) => swipes.map((s) => s.projectId));
-
-  const projects = await prisma.project.findMany({
+  const projectFeed = await prisma.project.findMany({
     where: {
-      id: { notIn: swipedProjectIds },
       ownerId: { not: userId }, // Don't show own projects
     },
-    include: { owner: { select: { name: true } } },
-    take: 10,
+    include: {
+      owner: { select: { name: true } },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 12,
   });
+  const projects: ProjectFeedItem[] = projectFeed.map((project) => ({
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    imageUrl: project.imageUrl,
+    tags: project.tags,
+    createdAt: project.createdAt.toISOString(),
+    commentsCount: project._count.comments,
+    owner: {
+      name: project.owner.name,
+    },
+  }));
 
   // Fetch potential teammates (users the user hasn't swiped on yet)
   const swipedUserIds = await prisma.userSwipe
@@ -53,7 +72,14 @@ export default async function Home({
 
   const myProjects = await prisma.project.findMany({
     where: { ownerId: userId },
-    include: { owner: { select: { name: true } } },
+    include: {
+      owner: { select: { name: true } },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -79,14 +105,29 @@ export default async function Home({
   const matches = await prisma.user.findMany({
     where: { id: { in: matchedUserIds } },
   });
+  const initialConversations = await listConversationSummaries(userId!);
+  const realtimeConfigured = isAblyConfigured();
 
   return (
     <MainApp
       projects={projects}
       teammates={teammates}
       userProfile={userProfile}
-      myProjects={myProjects}
+      myProjects={myProjects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        imageUrl: project.imageUrl,
+        tags: project.tags,
+        createdAt: project.createdAt.toISOString(),
+        commentsCount: project._count.comments,
+        owner: {
+          name: project.owner.name,
+        },
+      }))}
       matches={matches}
+      initialConversations={initialConversations}
+      realtimeConfigured={realtimeConfigured}
       initialTab={initialTab}
     />
   );

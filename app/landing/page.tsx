@@ -28,7 +28,7 @@ const Menu = dynamic(() => import("../components/shared/Menu"), { ssr: false });
 
 export default function LandingPage() {
   return (
-    <div>
+    <div className="h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-y-auto bg-black">
       <Menu />
       <AppBar />
       <Banner />

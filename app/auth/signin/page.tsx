@@ -1,10 +1,8 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Github, Sparkles } from "lucide-react";
 
@@ -30,21 +28,27 @@ const GoogleIcon = () => (
 );
 
 export default function SignInPage() {
-  const router = useRouter();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const [pendingProvider, setPendingProvider] = useState<
+    "github" | "google" | null
+  >(null);
 
-  useEffect(() => {
+  const handleProviderSignIn = async (provider: "github" | "google") => {
+    setPendingProvider(provider);
+
     if (status === "authenticated") {
-      router.replace("/?tab=projects");
+      await signOut({ redirect: false });
     }
-  }, [router, status]);
+
+    await signIn(provider, { callbackUrl: "/?tab=projects" });
+  };
 
   const errorMessage = (() => {
     if (!error) return "";
     if (error === "OAuthAccountNotLinked") {
-      return "This email is already linked to a different provider. Try the original provider or use Google again with the same verified email.";
+      return "That provider could not be linked automatically. Make sure both providers use the same verified email address.";
     }
     if (error === "AccessDenied") {
       return "Sign in was denied. Make sure your provider account has a verified email.";
@@ -84,20 +88,34 @@ export default function SignInPage() {
           </p>
         </div>
 
+        {status === "authenticated" ? (
+          <p className="mb-6 text-center text-sm text-amber-300">
+            Signed in as {session?.user?.email || "another account"}. Choosing a
+            provider below will sign out the current account and switch to the
+            new one.
+          </p>
+        ) : null}
+
         <button
-          onClick={() => signIn("github", { callbackUrl: "/?tab=projects" })}
+          onClick={() => handleProviderSignIn("github")}
+          disabled={status === "loading" || pendingProvider !== null}
           className="w-full py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 border-2 border-white/35 bg-zinc-950/90 text-white hover:bg-zinc-900 hover:border-white/60 hover:shadow-[0_0_20px_rgba(255,255,255,0.12)] transition-all duration-300 active:scale-95 shadow-xl"
         >
           <Github className="w-6 h-6" />
-          Continue with GitHub
+          {pendingProvider === "github"
+            ? "Switching to GitHub..."
+            : "Continue with GitHub"}
         </button>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/?tab=projects" })}
+          onClick={() => handleProviderSignIn("google")}
+          disabled={status === "loading" || pendingProvider !== null}
           className="mt-4 w-full py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 border-2 border-primary/45 bg-primary/10 text-white hover:bg-primary/16 hover:border-primary/70 hover:shadow-[0_0_20px_rgba(234,40,30,0.25)] transition-all duration-300 active:scale-95 shadow-xl"
         >
           <GoogleIcon />
-          Continue with Google
+          {pendingProvider === "google"
+            ? "Switching to Google..."
+            : "Continue with Google"}
         </button>
 
         <p className="mt-10 text-center text-sm text-gray-500">

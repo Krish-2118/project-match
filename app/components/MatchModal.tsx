@@ -5,114 +5,152 @@ import { Heart, Github, X } from "lucide-react";
 import Image from "next/image";
 
 export default function MatchModal({
-    isOpen,
-    onClose,
-    matchUser
+  isOpen,
+  onClose,
+  matchUser,
 }: {
-    isOpen: boolean;
-    onClose: () => void;
-    matchUser: { name: string | null; image: string | null; major: string | null; university: string | null } | null
+  isOpen: boolean;
+  onClose: () => void;
+  matchUser: {
+    name: string | null;
+    image: string | null;
+    major: string | null;
+    university: string | null;
+    github?: string | null;
+  } | null;
 }) {
-    if (!matchUser) return null;
+  if (!matchUser) return null;
 
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200]"
-                    />
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, rotate: 10 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-[201] p-6 text-center"
+  const details = [matchUser.major, matchUser.university]
+    .filter(Boolean)
+    .join(" / ");
+  const githubUrl = matchUser.github?.trim() || null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl"
+          />
+          <div className="fixed inset-0 z-[201] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-3 sm:p-5 md:p-8">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                className="relative w-full max-w-[28rem]"
+              >
+                <div className="glass-morphism relative max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-[2rem] border border-white/10 p-5 shadow-2xl backdrop-blur-xl sm:max-h-[calc(100vh-2.5rem)] sm:rounded-[2.5rem] sm:p-8">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+
+                  <div className="absolute right-5 top-5 z-20 sm:right-6 sm:top-6">
+                    <button
+                      onClick={onClose}
+                      aria-label="Close match modal"
+                      className="rounded-full border border-white/10 bg-black/40 p-2.5 text-white/60 transition-colors hover:text-white"
                     >
-                        <div className="glass-morphism rounded-[3rem] p-12 shadow-2xl border border-white/10 backdrop-blur-xl relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
 
-                            {/* Animated background elements */}
-                            <div className="absolute top-10 right-10 opacity-20">
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                                    className="w-16 h-16 border-2 border-primary/30 rounded-full"
-                                />
-                            </div>
-                            <div className="absolute bottom-10 left-10 opacity-15">
-                                <motion.div
-                                    animate={{ scale: [1, 1.2, 1] }}
-                                    transition={{ duration: 3, repeat: Infinity }}
-                                    className="w-12 h-12 bg-secondary/20 rounded-full blur-sm"
-                                />
-                            </div>
+                  <div className="absolute right-8 top-10 opacity-20 sm:right-10 sm:top-12">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      className="h-12 w-12 rounded-full border-2 border-primary/30 sm:h-16 sm:w-16"
+                    />
+                  </div>
+                  <div className="absolute bottom-8 left-8 opacity-15 sm:bottom-10 sm:left-10">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="h-10 w-10 rounded-full bg-secondary/20 blur-sm sm:h-12 sm:w-12"
+                    />
+                  </div>
 
-                            <div className="relative z-10 text-center">
-                                <div className="mb-12">
-                                    <motion.div
-                                        animate={{ scale: [1, 1.2, 1] }}
-                                        transition={{ repeat: Infinity, duration: 1.5 }}
-                                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-primary/20 rounded-full blur-3xl -z-10"
-                                    />
-                                    <motion.div
-                                        animate={{ rotate: [0, 10, -10, 0] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
-                                        className="inline-block"
-                                    >
-                                        <Heart className="w-32 h-32 text-primary fill-primary mx-auto drop-shadow-[0_0_30px_rgba(255,87,34,0.5)]" />
-                                    </motion.div>
-                                </div>
+                  <div className="relative z-10 text-center">
+                    <div className="mb-7 pt-6 sm:mb-8 sm:pt-8">
+                      <motion.div
+                        animate={{ scale: [1, 1.14, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="absolute left-1/2 top-[3.25rem] -z-10 h-28 w-28 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl sm:top-[4.25rem] sm:h-36 sm:w-36"
+                      />
+                      <motion.div
+                        animate={{ rotate: [0, 10, -10, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="inline-block"
+                      >
+                        <Heart className="mx-auto h-20 w-20 fill-primary text-primary drop-shadow-[0_0_30px_rgba(255,87,34,0.45)] sm:h-24 sm:w-24" />
+                      </motion.div>
+                    </div>
 
-                                <h2 className="text-6xl font-black italic tracking-tighter text-white mb-4">IT&apos;S A MATCH!</h2>
-                                <p className="text-gray-400 mb-12 font-bold uppercase tracking-widest text-lg">You both liked each other</p>
+                    <h2 className="mx-auto max-w-[12ch] text-balance text-4xl font-black italic tracking-tighter text-white sm:text-5xl">
+                      IT&apos;S A MATCH!
+                    </h2>
+                    <p className="mx-auto mt-3 max-w-[18ch] text-balance text-sm font-bold uppercase tracking-[0.22em] text-gray-400 sm:mt-4 sm:text-base">
+                      You both liked each other
+                    </p>
 
-                                <div className="glass-morphism rounded-[2.5rem] p-10 border border-white/10 mb-10 max-w-md mx-auto">
-                                    <div className="w-40 h-40 rounded-[2rem] border-4 border-primary bg-gray-900 overflow-hidden relative shadow-2xl mx-auto mb-6">
-                                        {matchUser.image ? (
-                                            <Image src={matchUser.image} alt={matchUser.name || "Match"} fill className="object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-white/10 text-6xl font-black">
-                                                ?
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-3xl font-black text-white">{matchUser.name}</h3>
-                                        <p className="text-primary font-bold text-lg">{matchUser.major} @ {matchUser.university}</p>
-                                    </div>
-                                </div>
+                    <div className="mx-auto mt-8 max-w-sm rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:mt-10 sm:rounded-[2.25rem] sm:p-7">
+                      <div className="relative mx-auto mb-5 h-28 w-28 overflow-hidden rounded-[1.6rem] border-4 border-primary bg-gray-900 shadow-2xl sm:mb-6 sm:h-36 sm:w-36 sm:rounded-[2rem]">
+                        {matchUser.image ? (
+                          <Image
+                            src={matchUser.image}
+                            alt={matchUser.name || "Match"}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-5xl font-black text-white/10">
+                            ?
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="break-words text-2xl font-black text-white sm:text-3xl">
+                          {matchUser.name || "New Match"}
+                        </h3>
+                        {details ? (
+                          <p className="text-sm font-bold text-primary sm:text-base">
+                            {details}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-medium text-gray-500">
+                            Profile details not available yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={() => window.open(`https://github.com/${matchUser.name?.toLowerCase().replace(/\s+/g, '')}`, '_blank')}
-                                        className="w-full py-5 bg-white text-black rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-lg"
-                                    >
-                                        <Github className="w-6 h-6" />
-                                        View GitHub Profile
-                                    </button>
-                                    <button
-                                        onClick={onClose}
-                                        className="w-full py-5 glass-morphism text-white/70 rounded-2xl font-bold hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                                    >
-                                        Keep Swiping
-                                    </button>
-                                </div>
-
-                                <button
-                                    onClick={onClose}
-                                    className="absolute -top-16 -right-4 p-4 text-white/40 hover:text-white transition-colors glass-morphism rounded-full border border-white/5"
-                                >
-                                    <X className="w-10 h-10" />
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    );
+                    <div className="mt-6 space-y-3 sm:mt-8 sm:space-y-4">
+                      {githubUrl ? (
+                        <button
+                          onClick={() => window.open(githubUrl, "_blank", "noopener,noreferrer")}
+                          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white px-4 py-4 text-base font-black text-black shadow-lg transition-all hover:scale-[1.01] sm:py-5 sm:text-lg"
+                        >
+                          <Github className="h-5 w-5 sm:h-6 sm:w-6" />
+                          View GitHub Profile
+                        </button>
+                      ) : null}
+                      <button
+                        onClick={onClose}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-bold text-white/80 transition-all hover:bg-white/10 hover:text-white sm:py-5 sm:text-base"
+                      >
+                        Keep Swiping
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }

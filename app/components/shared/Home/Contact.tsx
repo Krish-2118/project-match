@@ -72,7 +72,7 @@ const Contact = () => {
           <br />
           <div style={{ marginTop: '2rem' }}>
             <Link
-              href="/login"
+              href="/auth/signin"
               className="contact-text"
               onMouseEnter={addCursorBorder}
               onMouseLeave={removeCursorBorder}

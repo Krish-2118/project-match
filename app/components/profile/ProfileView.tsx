@@ -1,4 +1,4 @@
-import { useTransition, useState, useRef } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { updateProfile, uploadImage } from "@/app/actions/profile";
 import {
   Save,
@@ -10,6 +10,7 @@ import {
   User,
   Zap,
   CheckCircle2,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -42,6 +43,23 @@ interface Project {
   owner: { name: string | null };
 }
 
+const yearOptions = [
+  "Freshman",
+  "Sophomore",
+  "Junior",
+  "Senior",
+  "Graduate",
+] as const;
+
+const settingsTabClass =
+  "px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] font-[family:var(--font-geist-sans)] transition-all border-b-2";
+const settingsLabelClass =
+  "ml-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500 font-[family:var(--font-geist-mono)]";
+const settingsInputClass =
+  "w-full rounded-2xl border border-white/10 bg-black px-5 py-3.5 text-base font-semibold tracking-[-0.01em] text-white placeholder:text-gray-700 font-[family:var(--font-geist-sans)] transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50";
+const settingsTextareaClass =
+  "min-h-[140px] w-full resize-none rounded-2xl border border-white/10 bg-black px-5 py-3.5 text-base font-medium leading-relaxed tracking-[-0.01em] text-white placeholder:text-gray-700 font-[family:var(--font-geist-sans)] transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50";
+
 export default function ProfileView({
   profile,
   myProjects,
@@ -54,6 +72,8 @@ export default function ProfileView({
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("about");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [selectedYear, setSelectedYear] = useState(profile.year || "");
+  const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
 
   // Image state
   const [avatarUrl, setAvatarUrl] = useState(profile.image);
@@ -62,6 +82,32 @@ export default function ProfileView({
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const yearMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        yearMenuRef.current &&
+        !yearMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsYearMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsYearMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const handleImageChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -131,6 +177,10 @@ export default function ProfileView({
     } else {
       alert("Failed to unmatch.");
     }
+  };
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/landing" });
   };
 
   return (
@@ -206,11 +256,13 @@ export default function ProfileView({
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => signOut()}
-                  className="p-3 bg-neutral-900 border border-white/5 rounded-2xl text-red-500 hover:bg-red-950/30 transition-colors"
-                  title="Sign Out"
+                  type="button"
+                  onClick={handleSignOut}
+                  className="inline-flex items-center gap-2 px-4 py-3 bg-neutral-900 border border-white/5 rounded-2xl text-red-500 hover:bg-red-950/30 transition-colors font-bold"
+                  title="Log Out"
                 >
                   <LogOut className="w-5 h-5" />
+                  <span className="hidden sm:inline">Log Out</span>
                 </button>
               </div>
             </div>
@@ -350,11 +402,11 @@ export default function ProfileView({
 
         {/* Main Content Area */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="bg-neutral-900 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+          <div className="overflow-hidden rounded-3xl border border-white/5 bg-neutral-900 shadow-xl">
             <div className="flex border-b border-white/5 px-4">
               <button
                 onClick={() => setActiveTab("about")}
-                className={`px-6 py-4 text-sm font-black uppercase tracking-wider transition-all border-b-2 ${
+                className={`${settingsTabClass} ${
                   activeTab === "about"
                     ? "border-primary text-white"
                     : "border-transparent text-gray-500 hover:text-gray-300"
@@ -364,7 +416,7 @@ export default function ProfileView({
               </button>
               <button
                 onClick={() => setActiveTab("activity")}
-                className={`px-6 py-4 text-sm font-black uppercase tracking-wider transition-all border-b-2 ${
+                className={`${settingsTabClass} ${
                   activeTab === "activity"
                     ? "border-primary text-white"
                     : "border-transparent text-gray-500 hover:text-gray-300"
@@ -376,27 +428,30 @@ export default function ProfileView({
 
             <div className="p-8">
               {activeTab === "about" ? (
-                <form action={handleSubmit} className="space-y-8">
+                <form
+                  action={handleSubmit}
+                  className="space-y-8 font-[family:var(--font-geist-sans)]"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         Full Name
                       </label>
                       <input
                         name="name"
                         defaultValue={profile.name || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                        className={settingsInputClass}
                         placeholder="e.g. John Doe"
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         Major
                       </label>
                       <input
                         name="major"
                         defaultValue={profile.major || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                        className={settingsInputClass}
                         placeholder="e.g. Computer Science"
                       />
                     </div>
@@ -404,78 +459,157 @@ export default function ProfileView({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         University
                       </label>
                       <input
                         name="university"
                         defaultValue={profile.university || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                        className={settingsInputClass}
                         placeholder="e.g. Stanford University"
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         Year
                       </label>
-                      <select
-                        name="year"
-                        defaultValue={profile.year || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white font-bold"
-                      >
-                        <option value="Freshman">Freshman</option>
-                        <option value="Sophomore">Sophomore</option>
-                        <option value="Junior">Junior</option>
-                        <option value="Senior">Senior</option>
-                        <option value="Graduate">Graduate</option>
-                      </select>
+                      <div ref={yearMenuRef} className="relative">
+                        <input type="hidden" name="year" value={selectedYear} />
+                        <button
+                          type="button"
+                          aria-haspopup="listbox"
+                          aria-expanded={isYearMenuOpen}
+                          onClick={() => setIsYearMenuOpen((open) => !open)}
+                          className={`group flex w-full items-center gap-4 rounded-[1.4rem] border px-4 py-3.5 text-left transition-all duration-200 ${
+                            isYearMenuOpen
+                              ? "border-primary/55 bg-linear-to-br from-neutral-950 via-black to-neutral-950 shadow-[0_0_0_1px_rgba(234,40,30,0.16),0_18px_45px_rgba(0,0,0,0.45)]"
+                              : "border-white/10 bg-linear-to-br from-neutral-950 via-black to-black hover:border-white/20 hover:shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+                          }`}
+                        >
+                          <div
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-colors ${
+                              isYearMenuOpen
+                                ? "border-primary/35 bg-primary/12 text-primary"
+                                : "border-white/10 bg-white/[0.03] text-gray-400 group-hover:text-white"
+                            }`}
+                          >
+                            <Calendar className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-gray-500 font-[family:var(--font-geist-mono)]">
+                              Academic Level
+                            </div>
+                            <div
+                              className={`mt-1 text-base font-semibold tracking-[-0.01em] font-[family:var(--font-geist-sans)] ${
+                                selectedYear ? "text-white" : "text-gray-500"
+                              }`}
+                            >
+                              {selectedYear || "Select your year"}
+                            </div>
+                          </div>
+                          <ChevronDown
+                            className={`h-5 w-5 shrink-0 transition-all duration-200 ${
+                              isYearMenuOpen
+                                ? "rotate-180 text-primary"
+                                : "text-gray-500 group-hover:text-white"
+                            }`}
+                          />
+                        </button>
+
+                        <div
+                          role="listbox"
+                          className={`absolute inset-x-0 top-[calc(100%+0.75rem)] z-20 rounded-[1.5rem] border border-white/10 bg-neutral-950/95 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-all duration-200 ${
+                            isYearMenuOpen
+                              ? "pointer-events-auto translate-y-0 opacity-100"
+                              : "pointer-events-none -translate-y-2 opacity-0"
+                          }`}
+                        >
+                          <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-gray-500 font-[family:var(--font-geist-mono)]">
+                            Choose Your Year
+                          </div>
+                          <div className="space-y-1">
+                            {yearOptions.map((option) => {
+                              const isSelected = selectedYear === option;
+
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isSelected}
+                                  onClick={() => {
+                                    setSelectedYear(option);
+                                    setIsYearMenuOpen(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between rounded-[1.1rem] px-4 py-3 text-left transition-all duration-200 ${
+                                    isSelected
+                                      ? "bg-linear-to-r from-primary to-[#ff5a42] text-white shadow-[0_14px_30px_rgba(234,40,30,0.3)]"
+                                      : "text-gray-300 hover:bg-white/[0.06] hover:text-white"
+                                  }`}
+                                >
+                                  <span className="font-semibold tracking-[-0.01em] font-[family:var(--font-geist-sans)]">
+                                    {option}
+                                  </span>
+                                  {isSelected ? (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  ) : (
+                                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-600 font-[family:var(--font-geist-mono)]">
+                                      Select
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                    <label className={settingsLabelClass}>
                       Bio
                     </label>
                     <textarea
                       name="bio"
                       defaultValue={profile.bio || ""}
-                      className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 min-h-[140px] resize-none font-bold leading-relaxed"
+                      className={settingsTextareaClass}
                       placeholder="Tell your story..."
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                    <label className={settingsLabelClass}>
                       Skills (comma separated)
                     </label>
                     <input
                       name="skills"
                       defaultValue={profile.skills || ""}
-                      className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                      className={settingsInputClass}
                       placeholder="e.g. React, Python, UI Design"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         Portfolio / Website
                       </label>
                       <input
                         name="website"
                         defaultValue={profile.website || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                        className={settingsInputClass}
                         placeholder="https://your-portfolio.com"
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-widest text-gray-500 ml-1">
+                      <label className={settingsLabelClass}>
                         GitHub URL
                       </label>
                       <input
                         name="github"
                         defaultValue={profile.github || ""}
-                        className="w-full px-5 py-3.5 bg-black border border-white/10 rounded-2xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-white placeholder:text-gray-700 font-bold"
+                        className={settingsInputClass}
                         placeholder="https://github.com/username"
                       />
                     </div>
@@ -485,7 +619,7 @@ export default function ProfileView({
                     <button
                       type="submit"
                       disabled={isPending}
-                      className={`w-full py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all ${
+                      className={`flex w-full items-center justify-center gap-3 rounded-[1.5rem] py-5 text-lg font-semibold tracking-[0.01em] font-[family:var(--font-geist-sans)] transition-all ${
                         status === "success"
                           ? "bg-emerald-500 text-white"
                           : status === "error"

@@ -1,20 +1,28 @@
 "use client";
 
 import {
-  AnimatePresence,
+  animate,
   motion,
   useMotionValue,
   useTransform,
-  Variants,
 } from "framer-motion";
-import { useState, useEffect } from "react";
-import { Heart, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronUp, Heart, X } from "lucide-react";
 
 interface DeckProps<T> {
   items: T[];
   renderItem: (item: T) => React.ReactNode;
-  onSwipe: (item: T, direction: "left" | "right") => void;
+  onSwipe: (item: T, direction: "left" | "right") => void | Promise<void>;
   emptyState: React.ReactNode;
+  onSwipeUp?: (item: T) => void;
+}
+
+interface PendingSwipe<T> {
+  item: T;
+  direction: "left" | "right";
+  startX: number;
+  startY: number;
+  startRotate: number;
 }
 
 export default function Deck<T extends { id: string }>({
@@ -22,159 +30,282 @@ export default function Deck<T extends { id: string }>({
   renderItem,
   onSwipe,
   emptyState,
+  onSwipeUp,
 }: DeckProps<T>) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [localItems, setLocalItems] = useState(items);
-  const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(
-    null,
-  );
-
-  // Sync local items when items prop changes
-  useEffect(() => {
-    setLocalItems(items);
-  }, [items]);
-
-  // Reset index when items change significantly
-  useEffect(() => {
-    if (items.length === 0) {
-      setCurrentIndex(0);
-    } else if (currentIndex > 0 && currentIndex >= items.length) {
-      // Wait for the exit animation to finish before looping back to the start
-      const timer = setTimeout(() => {
-        setCurrentIndex(0);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [items.length, currentIndex]);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [pendingSwipe, setPendingSwipe] = useState<PendingSwipe<T> | null>(null);
 
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-250, 250], [-25, 25]);
-  const likeOpacity = useTransform(x, [20, 120], [0, 1]);
-  const passOpacity = useTransform(x, [-20, -120], [0, 1]);
+  const y = useMotionValue(0);
+  const rotate = useTransform(x, [-280, 280], [-11, 11]);
+  const likeOpacity = useTransform(x, [18, 110], [0, 1]);
+  const passOpacity = useTransform(x, [-110, -18], [1, 0]);
+  const detailOpacity = useTransform(y, [-170, -50], [1, 0]);
+  const detailScale = useTransform(y, [-170, -50], [1.06, 0.92]);
+  const removalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTopItemIdRef = useRef<string | null>(null);
+  const activeHiddenIdSet = useMemo(
+    () => new Set(hiddenIds.filter((id) => items.some((item) => item.id === id))),
+    [hiddenIds, items],
+  );
+
+  const visibleItems = items
+    .filter(
+      (item) =>
+        !activeHiddenIdSet.has(item.id) && item.id !== pendingSwipe?.item.id,
+    )
+    .slice(0, 3);
+
+  const activeTopItemId = visibleItems[0]?.id ?? null;
+  const isSwiping = pendingSwipe !== null;
+
+  useEffect(() => {
+    if (pendingSwipe) {
+      return;
+    }
+
+    if (lastTopItemIdRef.current === activeTopItemId) {
+      return;
+    }
+
+    lastTopItemIdRef.current = activeTopItemId;
+    x.set(0);
+    y.set(0);
+  }, [activeTopItemId, pendingSwipe, x, y]);
+
+  useEffect(() => {
+    return () => {
+      if (removalTimerRef.current) {
+        clearTimeout(removalTimerRef.current);
+      }
+    };
+  }, []);
+
+  const resetCardPosition = () => {
+    const spring = {
+      type: "spring" as const,
+      stiffness: 340,
+      damping: 30,
+      mass: 0.78,
+    };
+
+    void animate(x, 0, spring);
+    void animate(y, 0, spring);
+  };
+
+  const completeSwipe = (itemId: string) => {
+    setHiddenIds((current) =>
+      current.includes(itemId) ? current : [...current, itemId],
+    );
+    setPendingSwipe(null);
+    x.set(0);
+    y.set(0);
+    removalTimerRef.current = null;
+  };
+
+  const restoreSwipe = (itemId: string) => {
+    if (removalTimerRef.current) {
+      clearTimeout(removalTimerRef.current);
+      removalTimerRef.current = null;
+    }
+
+    setHiddenIds((current) => current.filter((id) => id !== itemId));
+    setPendingSwipe(null);
+    resetCardPosition();
+  };
 
   const handleDragEnd = (
     _: unknown,
-    info: { offset: { x: number }; velocity: { x: number } },
+    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } },
   ) => {
-    const threshold = 100;
-    const velocity = info.velocity.x;
+    const horizontalThreshold = 138;
+    const horizontalVelocity = 760;
+    const minimumTravelForFlick = 64;
+    const upwardThreshold = -110;
+    const upwardVelocity = -520;
 
-    if (info.offset.x > threshold || velocity > 300) {
-      setExitDirection("right");
-      onSwipe(localItems[currentIndex], "right");
-      setCurrentIndex((prev) => prev + 1);
-    } else if (info.offset.x < -threshold || velocity < -300) {
-      setExitDirection("left");
-      onSwipe(localItems[currentIndex], "left");
-      setCurrentIndex((prev) => prev + 1);
+    if (isSwiping) {
+      resetCardPosition();
+      return;
     }
-    x.set(0);
-  };
 
-  // define variants right before return statement
-  const cardVariants: Variants = {
-    initial: (customValues: { scale: number; yOffset: number }) => ({
-      scale: customValues.scale - 0.05,
-      opacity: 1,
-      y: customValues.yOffset + 20,
-    }),
-    active: (customValues: { scale: number; yOffset: number }) => ({
-      scale: customValues.scale,
-      opacity: 1,
-      y: customValues.yOffset,
-      transition: {
-        type: "spring" as const,
-        stiffness: 500,
-        damping: 35,
-        mass: 0.8,
+    const currentItem = visibleItems[0];
+
+    if (!currentItem) {
+      resetCardPosition();
+      return;
+    }
+
+    const isUpSwipe =
+      onSwipeUp &&
+      Math.abs(info.offset.x) < 110 &&
+      (info.offset.y < upwardThreshold || info.velocity.y < upwardVelocity);
+
+    if (isUpSwipe) {
+      onSwipeUp(currentItem);
+      resetCardPosition();
+      return;
+    }
+
+    let nextDirection: "left" | "right" | null = null;
+
+    if (
+      info.offset.x > horizontalThreshold ||
+      (info.offset.x > minimumTravelForFlick &&
+        info.velocity.x > horizontalVelocity)
+    ) {
+      nextDirection = "right";
+    } else if (
+      info.offset.x < -horizontalThreshold ||
+      (info.offset.x < -minimumTravelForFlick &&
+        info.velocity.x < -horizontalVelocity)
+    ) {
+      nextDirection = "left";
+    }
+
+    if (!nextDirection) {
+      resetCardPosition();
+      return;
+    }
+
+    setPendingSwipe({
+      item: currentItem,
+      direction: nextDirection,
+      startX: x.get(),
+      startY: y.get(),
+      startRotate: rotate.get(),
+    });
+    x.set(0);
+    y.set(0);
+
+    removalTimerRef.current = setTimeout(() => {
+      completeSwipe(currentItem.id);
+    }, 320);
+
+    void Promise.resolve(onSwipe(currentItem, nextDirection)).catch(
+      (swipeError) => {
+        console.error(swipeError);
+        restoreSwipe(currentItem.id);
       },
-    }),
-    exit: (direction: "left" | "right") => ({
-      x: direction === "left" ? -1000 : 1000,
-      rotate: direction === "left" ? -45 : 45,
-      opacity: 1,
-      transition: { duration: 0.35, ease: "easeIn" },
-    }),
+    );
   };
 
   return (
-    <div className="relative w-full max-w-[360px] mx-auto h-[440px] sm:h-[500px] flex items-center justify-center perspective-[1500px]">
-      {/* Empty State Layer - Always rendered behind */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-0 animate-in fade-in duration-700">
+    <div className="relative mx-auto flex h-[calc(100dvh-12rem)] max-h-[44rem] min-h-[31rem] w-full max-w-[23rem] items-center justify-center perspective-[1500px] sm:h-[min(74dvh,41rem)] sm:max-h-none sm:min-h-[34rem] sm:max-w-[29rem] md:h-[min(78dvh,46rem)] md:min-h-[38rem] md:max-w-[33rem]">
+      <div className="absolute inset-0 z-0 flex animate-in flex-col items-center justify-center fade-in duration-700">
         {emptyState}
       </div>
 
-      {/* Card Stack - Rendered on top */}
-      <AnimatePresence mode="popLayout" custom={exitDirection}>
-        {currentIndex < localItems.length &&
-          localItems
-            .slice(currentIndex, currentIndex + 3)
-            .reverse()
-            .map((item, index) => {
-              const stackIndex =
-                localItems.slice(currentIndex, currentIndex + 3).length -
-                1 -
-                index;
-              const isTop = stackIndex === 0;
+      {visibleItems
+        .slice()
+        .reverse()
+        .map((item, index) => {
+          const stackIndex = visibleItems.length - 1 - index;
+          const isTop = stackIndex === 0;
 
-              const scale = isTop ? 1 : 1 - stackIndex * 0.04;
-              const yOffset = isTop ? 0 : stackIndex * 12;
-
-              return (
-                <motion.div
-                  key={item.id}
-                  drag={isTop ? "x" : false}
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.6}
-                  dragMomentum={false}
-                  onDragEnd={handleDragEnd}
-                  style={{
-                    x: isTop ? x : 0,
-                    rotate: isTop ? rotate : 0,
-                    zIndex: 100 - stackIndex,
-                    transformOrigin: "bottom center",
-                    touchAction: "none",
-                  }}
-                  custom={{
-                    scale,
-                    yOffset,
-                    direction: exitDirection || "right",
-                  }}
-                  variants={cardVariants}
-                  initial="initial"
-                  animate="active"
-                  exit="exit"
-                  className="absolute w-full h-full cursor-grab active:cursor-grabbing"
-                >
-                  {isTop && (
-                    <>
-                      <motion.div
-                        style={{ opacity: likeOpacity }}
-                        className="absolute top-8 left-6 z-[110] px-4 py-1.5 border-4 border-emerald-500/80 rounded-lg -rotate-12 pointer-events-none bg-neutral-900/40 shadow-sm backdrop-blur-sm"
-                      >
-                        <span className="text-xl font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                          <Heart className="fill-emerald-500 w-5 h-5" /> YES
-                        </span>
-                      </motion.div>
-                      <motion.div
-                        style={{ opacity: passOpacity }}
-                        className="absolute top-8 right-6 z-[110] px-4 py-1.5 border-4 border-rose-500/80 rounded-lg rotate-12 pointer-events-none bg-neutral-900/40 shadow-sm backdrop-blur-sm"
-                      >
-                        <span className="text-xl font-bold text-rose-500 uppercase tracking-widest flex items-center gap-2">
-                          <X className="w-6 h-6" /> NOPE
-                        </span>
-                      </motion.div>
-                    </>
-                  )}
-                  <div
-                    className={`w-full h-full transition-all duration-300 ${isTop ? "shadow-[0_20px_50px_rgba(0,0,0,0.5)]" : "shadow-none"}`}
+          return (
+            <motion.div
+              key={item.id}
+              initial={false}
+              drag={isTop && !isSwiping}
+              dragDirectionLock
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              dragElastic={0.16}
+              dragMomentum={false}
+              onDragEnd={handleDragEnd}
+              whileDrag={{ scale: 1.02 }}
+              style={{
+                scale: 1,
+                x: isTop ? x : 0,
+                y: isTop ? y : 0,
+                rotate: isTop ? rotate : 0,
+                zIndex: 100 - stackIndex,
+                transformOrigin: "bottom center",
+                touchAction: "none",
+                willChange: isTop ? "transform" : "auto",
+              }}
+              animate={false}
+              transition={{ duration: 0 }}
+              className="absolute h-full w-full cursor-grab touch-none transform-gpu [backface-visibility:hidden] active:cursor-grabbing"
+            >
+              {isTop && (
+                <>
+                  <motion.div
+                    style={{ opacity: likeOpacity }}
+                    className="pointer-events-none absolute left-6 top-8 z-[110] rounded-lg border-4 border-emerald-500/80 bg-neutral-900/40 px-4 py-1.5 shadow-sm backdrop-blur-sm -rotate-12"
                   >
-                    {renderItem(item)}
-                  </div>
-                </motion.div>
-              );
-            })}
-      </AnimatePresence>
+                    <span className="flex items-center gap-2 text-xl font-bold uppercase tracking-widest text-emerald-500">
+                      <Heart className="h-5 w-5 fill-emerald-500" /> YES
+                    </span>
+                  </motion.div>
+                  <motion.div
+                    style={{ opacity: passOpacity }}
+                    className="pointer-events-none absolute right-6 top-8 z-[110] rotate-12 rounded-lg border-4 border-rose-500/80 bg-neutral-900/40 px-4 py-1.5 shadow-sm backdrop-blur-sm"
+                  >
+                    <span className="flex items-center gap-2 text-xl font-bold uppercase tracking-widest text-rose-500">
+                      <X className="h-6 w-6" /> NOPE
+                    </span>
+                  </motion.div>
+                  {onSwipeUp ? (
+                    <motion.div
+                      style={{ opacity: detailOpacity, scale: detailScale }}
+                      className="pointer-events-none absolute inset-x-0 bottom-8 z-[110] flex justify-center"
+                    >
+                      <span className="inline-flex items-center gap-2 rounded-full border-2 border-sky-400/75 bg-neutral-900/60 px-4 py-2 text-sm font-black uppercase tracking-[0.22em] text-sky-300 shadow-sm backdrop-blur-sm">
+                        <ChevronUp className="h-4 w-4" />
+                        DETAILS
+                      </span>
+                    </motion.div>
+                  ) : null}
+                </>
+              )}
+              <div
+                className={`h-full w-full ${
+                  isTop ? "shadow-[0_20px_50px_rgba(0,0,0,0.5)]" : "shadow-none"
+                }`}
+              >
+                {renderItem(item)}
+              </div>
+            </motion.div>
+          );
+        })}
+
+      {pendingSwipe ? (
+        <motion.div
+          key={`exiting-${pendingSwipe.item.id}`}
+          initial={false}
+          animate={{
+            x:
+              pendingSwipe.startX +
+              (pendingSwipe.direction === "left" ? -1000 : 1000),
+            y: pendingSwipe.startY,
+            rotate:
+              pendingSwipe.startRotate +
+              (pendingSwipe.direction === "left" ? -18 : 18),
+            scale: 1.03,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 26,
+            mass: 0.82,
+          }}
+          style={{
+            x: pendingSwipe.startX,
+            y: pendingSwipe.startY,
+            rotate: pendingSwipe.startRotate,
+            zIndex: 200,
+            transformOrigin: "bottom center",
+            touchAction: "none",
+            willChange: "transform",
+          }}
+          className="pointer-events-none absolute h-full w-full transform-gpu [backface-visibility:hidden]"
+        >
+          <div className="h-full w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            {renderItem(pendingSwipe.item)}
+          </div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }
