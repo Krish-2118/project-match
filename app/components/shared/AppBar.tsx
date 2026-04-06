@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion, HTMLMotionProps, useScroll, useTransform } from 'framer-motion';
 import styled from 'styled-components';
 import containerStyles from '../../styles/shared/container';
 import Logo from './icons/Logo';
@@ -107,20 +107,27 @@ const AppBar = (props: AppBarProps) => {
 
   const styles = getStyles(direction);
 
+  const { scrollY } = useScroll();
+  const opacity = useTransform(scrollY, [20, 150], [1, 0]);
+  const scale = useTransform(scrollY, [20, 150], [1, 0.8]);
+  const pointerEvents = useTransform(scrollY, (y) => (y > 150 ? 'none' : 'auto'));
+
   return (
     <Slider
       as={renderAs}
       variants={variants}
       initial="hidden"
-      animate={hidden ? 'hidden' : 'show'}
+      animate="show"
       transition={{ duration: 0.6, ease: [0.6, 0.05, 0.01, 0.9] as const }}
-      style={{ ...styles, ...styleProp }}
+      style={{ ...styles, ...styleProp, pointerEvents }}
       custom={custom}
       {...rootProps}
     >
       <Container>
         <StyledLink href="/" title="Project Match">
-          <Logo {...logoProps} />
+          <motion.div style={{ opacity, scale }}>
+            <Logo {...logoProps} />
+          </motion.div>
         </StyledLink>
         <MenuWrapper>
           <MenuButton title="Projects" />
